@@ -25,7 +25,7 @@ Emoji Progress Bar is a lightweight IntelliJ Platform plugin (compatible with In
 ## Getting Started
 
 1. **Generate the Gradle wrapper JAR (first time only).**  
-   If the `gradle/wrapper/gradle-wrapper.jar` file is missing, run `gradle wrapper --gradle-version 8.5` once using a locally installed Gradle distribution.
+   If the `gradle/wrapper/gradle-wrapper.jar` file is missing, run `gradle wrapper --gradle-version 8.7` once using a locally installed Gradle distribution.
 
 2. **Build or run the plugin:**
    ```bash
@@ -44,7 +44,6 @@ Emoji Progress Bar is a lightweight IntelliJ Platform plugin (compatible with In
 
 ## Notes
 
-- Requires an IDE build `2023.3` or newer (sinceBuild `233`).
+- Requires IntelliJ platform build `2024.3`+ (sinceBuild `243`) and JDK 21.
 - The custom UI automatically restores the original look when the plugin is disabled or unloaded.
 - For additional styling tweaks, adjust `EmojiProgressBarUi` in `src/main/kotlin/com/madesha/emoji/progress/ui/`.
-

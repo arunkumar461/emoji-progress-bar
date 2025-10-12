@@ -1,6 +1,7 @@
-    plugins {
-    kotlin("jvm") version "1.9.22"
-    id("org.jetbrains.intellij") version "1.16.1"
+plugins {
+    id("java")
+    kotlin("jvm") version "1.9.25"
+    id("org.jetbrains.intellij.platform") version "2.3.0"
 }
 
 group = "com.madesha.emoji"
@@ -8,31 +9,35 @@ version = "0.1.0"
 
 repositories {
     mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
 }
 
-intellij {
-    version.set("2023.3")
-    type.set("IC")
-    plugins.set(listOf("java"))
+dependencies {
+    intellijPlatform {
+        create("IC", "2024.3.6")
+        testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
+    }
+}
+
+intellijPlatform {
+    pluginConfiguration {
+        ideaVersion {
+            sinceBuild = "243"
+        }
+        changeNotes = """
+            Initial version targeting IntelliJ Platform 2024.3 with colourful emoji progress bar support.
+        """.trimIndent()
+    }
 }
 
 tasks {
-    patchPluginXml {
-        sinceBuild.set("233")
-        untilBuild.set("242.*")
+    withType<JavaCompile> {
+        sourceCompatibility = "21"
+        targetCompatibility = "21"
     }
-
-    compileKotlin {
-        kotlinOptions.jvmTarget = "17"
-    }
-
-    compileJava {
-        sourceCompatibility = "17"
-        targetCompatibility = "17"
-    }
-
-    runIde {
-        autoReloadPlugins.set(true)
+    withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+        kotlinOptions.jvmTarget = "21"
     }
 }
-
