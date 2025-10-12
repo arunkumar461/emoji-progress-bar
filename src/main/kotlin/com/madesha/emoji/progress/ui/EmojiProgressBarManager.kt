@@ -30,12 +30,12 @@ class EmojiProgressBarManager : Disposable {
     }
 
     private fun installCustomProgressBarUi() {
-        val activeUi = EmojiProgressBarUi.asActiveValue()
+        val uiClass = EmojiProgressBarUi::class.java
 
-        defaults["ProgressBarUI"] = activeUi
-        defaults[uiKey] = activeUi
-        lafDefaults["ProgressBarUI"] = activeUi
-        lafDefaults[uiKey] = activeUi
+        defaults["ProgressBarUI"] = uiClass
+        defaults[uiKey] = uiClass
+        lafDefaults["ProgressBarUI"] = uiClass
+        lafDefaults[uiKey] = uiClass
 
         forceRefreshOfOpenProgressBars()
     }

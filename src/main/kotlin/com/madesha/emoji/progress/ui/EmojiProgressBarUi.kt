@@ -10,10 +10,8 @@ import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.geom.RoundRectangle2D
 import javax.swing.JComponent
-import javax.swing.UIDefaults
 import javax.swing.UIManager
 import javax.swing.plaf.basic.BasicProgressBarUI
-import javax.swing.plaf.ComponentUI
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -142,9 +140,5 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         private const val MAX_ANIMATION_MS = 600
 
         val UI_CLASS_NAME: String = EmojiProgressBarUi::class.java.name
-
-        fun asActiveValue(): UIDefaults.ActiveValue = UIDefaults.ActiveValue {
-            EmojiProgressBarUi()
-        }
     }
 }
