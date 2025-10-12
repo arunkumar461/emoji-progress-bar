@@ -18,4 +18,5 @@
         <listener class="com.madesha.emoji.progress.EmojiProgressBarAppLifecycleListener"
                   topic="com.intellij.ide.AppLifecycleListener"/>
     </applicationListeners>
+
 </idea-plugin>

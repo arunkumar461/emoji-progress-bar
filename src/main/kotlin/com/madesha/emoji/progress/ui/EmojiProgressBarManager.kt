@@ -9,6 +9,7 @@ import java.awt.Component
 import java.awt.Container
 import java.awt.EventQueue
 import java.awt.Frame
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JProgressBar
 import javax.swing.UIDefaults
 import javax.swing.UIManager
@@ -19,29 +20,35 @@ class EmojiProgressBarManager : Disposable {
     private val defaults: UIDefaults = UIManager.getDefaults()
     private val lafDefaults: UIDefaults = UIManager.getLookAndFeelDefaults()
     private val uiKey: String = EmojiProgressBarUi.UI_CLASS_NAME
+    private val application get() = ApplicationManager.getApplication()
+
     private val originalProgressBarUi: Any? = defaults["ProgressBarUI"]
     private val originalNamedUi: Any? = defaults[uiKey]
     private val originalLafUi: Any? = lafDefaults["ProgressBarUI"]
     private val originalLafNamedUi: Any? = lafDefaults[uiKey]
+    private val initialized = AtomicBoolean(false)
 
-    init {
+    fun initialize() {
+        if (!initialized.compareAndSet(false, true)) return
+        if (application.isDisposed) return
+
         installCustomProgressBarUi()
         connectSettingUpdates()
     }
 
     private fun installCustomProgressBarUi() {
-        val uiClass = EmojiProgressBarUi::class.java
+        val activeValue = UIDefaults.ActiveValue { EmojiProgressBarUi() }
 
-        defaults["ProgressBarUI"] = uiClass
-        defaults[uiKey] = uiClass
-        lafDefaults["ProgressBarUI"] = uiClass
-        lafDefaults[uiKey] = uiClass
+        defaults["ProgressBarUI"] = activeValue
+        defaults[uiKey] = activeValue
+        lafDefaults["ProgressBarUI"] = activeValue
+        lafDefaults[uiKey] = activeValue
 
         forceRefreshOfOpenProgressBars()
     }
 
     private fun connectSettingUpdates() {
-        val connection = ApplicationManager.getApplication().messageBus.connect(this)
+        val connection = application.messageBus.connect(this)
         connection.subscribe(
             EmojiProgressBarSettings.TOPIC,
             object : EmojiProgressBarSettings.EmojiProgressBarSettingsListener {
@@ -59,7 +66,7 @@ class EmojiProgressBarManager : Disposable {
     }
 
     private fun forceRefreshOfOpenProgressBars() {
-        if (ApplicationManager.getApplication().isDisposed) return
+        if (application.isDisposed) return
         EventQueue.invokeLater {
             Frame.getFrames().forEach { frame ->
                 if (frame.isDisplayable) {

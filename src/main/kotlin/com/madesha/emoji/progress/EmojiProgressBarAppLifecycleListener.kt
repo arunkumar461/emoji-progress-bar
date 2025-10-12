@@ -6,7 +6,11 @@ import com.madesha.emoji.progress.ui.EmojiProgressBarManager
 
 class EmojiProgressBarAppLifecycleListener : AppLifecycleListener {
     override fun appFrameCreated(commandLineArgs: MutableList<String>) {
-        ApplicationManager.getApplication().getService(EmojiProgressBarManager::class.java)
+        val application = ApplicationManager.getApplication()
+        if (application.isDisposed) return
+
+        val manager = application.getService(EmojiProgressBarManager::class.java)
+        manager.initialize()
     }
 }
 
