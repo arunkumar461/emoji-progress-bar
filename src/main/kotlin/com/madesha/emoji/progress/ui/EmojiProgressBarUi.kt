@@ -140,5 +140,8 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         private const val MAX_ANIMATION_MS = 600
 
         val UI_CLASS_NAME: String = EmojiProgressBarUi::class.java.name
+
+        @JvmStatic
+        fun createUI(component: JComponent?): BasicProgressBarUI = EmojiProgressBarUi()
     }
 }

@@ -17,32 +17,47 @@ import javax.swing.UIManager
 @Service(Service.Level.APP)
 class EmojiProgressBarManager : Disposable {
 
-    private val defaults: UIDefaults = UIManager.getDefaults()
-    private val lafDefaults: UIDefaults = UIManager.getLookAndFeelDefaults()
     private val uiKey: String = EmojiProgressBarUi.UI_CLASS_NAME
     private val application get() = ApplicationManager.getApplication()
 
-    private val originalProgressBarUi: Any? = defaults["ProgressBarUI"]
-    private val originalNamedUi: Any? = defaults[uiKey]
-    private val originalLafUi: Any? = lafDefaults["ProgressBarUI"]
-    private val originalLafNamedUi: Any? = lafDefaults[uiKey]
+    private var originalCaptured: Boolean = false
+    private var originalProgressBarUi: Any? = null
+    private var originalNamedUi: Any? = null
+    private var originalLafUi: Any? = null
+    private var originalLafNamedUi: Any? = null
     private val initialized = AtomicBoolean(false)
 
     fun initialize() {
         if (!initialized.compareAndSet(false, true)) return
         if (application.isDisposed) return
 
+        captureOriginalDefaults()
         installCustomProgressBarUi()
         connectSettingUpdates()
     }
 
-    private fun installCustomProgressBarUi() {
-        val activeValue = UIDefaults.ActiveValue { EmojiProgressBarUi() }
+    private fun captureOriginalDefaults() {
+        if (originalCaptured) return
+        val defaults = UIManager.getDefaults()
+        val lafDefaults = UIManager.getLookAndFeelDefaults()
 
-        defaults["ProgressBarUI"] = activeValue
-        defaults[uiKey] = activeValue
-        lafDefaults["ProgressBarUI"] = activeValue
-        lafDefaults[uiKey] = activeValue
+        originalProgressBarUi = defaults["ProgressBarUI"]
+        originalNamedUi = defaults[uiKey]
+        originalLafUi = lafDefaults["ProgressBarUI"]
+        originalLafNamedUi = lafDefaults[uiKey]
+        originalCaptured = true
+    }
+
+    private fun installCustomProgressBarUi() {
+        val defaults = UIManager.getDefaults()
+        val lafDefaults = UIManager.getLookAndFeelDefaults()
+        val uiClassName = uiKey
+        val uiClass = EmojiProgressBarUi::class.java
+
+        defaults["ProgressBarUI"] = uiClassName
+        defaults[uiClassName] = uiClass
+        lafDefaults["ProgressBarUI"] = uiClassName
+        lafDefaults[uiClassName] = uiClass
 
         forceRefreshOfOpenProgressBars()
     }
@@ -90,15 +105,13 @@ class EmojiProgressBarManager : Disposable {
     }
 
     override fun dispose() {
-        restoreOriginal("ProgressBarUI", originalProgressBarUi)
-        restoreOriginal(uiKey, originalNamedUi)
+        val defaults = UIManager.getDefaults()
+        val lafDefaults = UIManager.getLookAndFeelDefaults()
+        restoreOriginal(defaults, "ProgressBarUI", originalProgressBarUi)
+        restoreOriginal(defaults, uiKey, originalNamedUi)
         restoreOriginal(lafDefaults, "ProgressBarUI", originalLafUi)
         restoreOriginal(lafDefaults, uiKey, originalLafNamedUi)
         forceRefreshOfOpenProgressBars()
-    }
-
-    private fun restoreOriginal(key: String, value: Any?) {
-        restoreOriginal(defaults, key, value)
     }
 
     private fun restoreOriginal(table: UIDefaults, key: String, value: Any?) {
