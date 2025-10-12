@@ -14,7 +14,12 @@ class EmojiProgressBarSettings : PersistentStateComponent<EmojiProgressBarSettin
     data class State(
         var emojiSequence: String = "\uD83D\uDC31\u200D\uD83D\uDC64 \uD83C\uDF0C",
         var trackCharacter: String = "\u00B7",
-        var indeterminateSpeedMs: Int = 120
+        var indeterminateSpeedMs: Int = 120,
+        var trackColorHex: String = DEFAULT_TRACK_COLOR,
+        var progressColorHex: String = DEFAULT_PROGRESS_COLOR,
+        var borderColorHex: String = DEFAULT_BORDER_COLOR,
+        var useImageIndicator: Boolean = false,
+        var imagePath: String = ""
     )
 
     private var state: State = State()
@@ -39,12 +44,20 @@ class EmojiProgressBarSettings : PersistentStateComponent<EmojiProgressBarSettin
     private fun State.normalize(): State = State(
         emojiSequence = emojiSequence.takeUnless { it.isBlank() } ?: DEFAULT_EMOJI_SEQUENCE,
         trackCharacter = trackCharacter.takeUnless { it.isBlank() } ?: DEFAULT_TRACK_CHARACTER,
-        indeterminateSpeedMs = indeterminateSpeedMs.coerceIn(MIN_SPEED_MS, MAX_SPEED_MS)
+        indeterminateSpeedMs = indeterminateSpeedMs.coerceIn(MIN_SPEED_MS, MAX_SPEED_MS),
+        trackColorHex = normalizeColor(trackColorHex, DEFAULT_TRACK_COLOR),
+        progressColorHex = normalizeColor(progressColorHex, DEFAULT_PROGRESS_COLOR),
+        borderColorHex = normalizeColor(borderColorHex, DEFAULT_BORDER_COLOR),
+        useImageIndicator = useImageIndicator,
+        imagePath = imagePath.trim()
     )
 
     companion object {
         const val DEFAULT_EMOJI_SEQUENCE: String = "\uD83D\uDE38\u200D\u2B1B"
         const val DEFAULT_TRACK_CHARACTER: String = "\u00B7"
+        const val DEFAULT_TRACK_COLOR: String = "F2F4F9"
+        const val DEFAULT_PROGRESS_COLOR: String = "FFFFFF"
+        const val DEFAULT_BORDER_COLOR: String = "D0D4E0"
         private const val MIN_SPEED_MS: Int = 60
         private const val MAX_SPEED_MS: Int = 400
 
@@ -53,10 +66,14 @@ class EmojiProgressBarSettings : PersistentStateComponent<EmojiProgressBarSettin
 
         fun getInstance(): EmojiProgressBarSettings =
             ApplicationManager.getApplication().getService(EmojiProgressBarSettings::class.java)
+
+        private fun normalizeColor(value: String?, fallback: String): String {
+            val cleaned = value?.trim()?.removePrefix("#") ?: return fallback
+            return cleaned.takeIf { it.matches(Regex("[0-9a-fA-F]{6,8}")) }?.uppercase() ?: fallback
+        }
     }
 
     interface EmojiProgressBarSettingsListener {
         fun settingsChanged(state: State)
     }
 }
-

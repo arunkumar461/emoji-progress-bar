@@ -19,6 +19,11 @@ class EmojiProgressBarConfigurable : SearchableConfigurable {
                 ui.emojiSequence = state.emojiSequence
                 ui.trackCharacter = state.trackCharacter
                 ui.indeterminateSpeedMs = state.indeterminateSpeedMs
+                ui.trackColorHex = state.trackColorHex
+                ui.progressColorHex = state.progressColorHex
+                ui.borderColorHex = state.borderColorHex
+                ui.useImageIndicator = state.useImageIndicator
+                ui.imagePath = state.imagePath
             }
         }
         return component!!.panel
@@ -29,7 +34,12 @@ class EmojiProgressBarConfigurable : SearchableConfigurable {
         val state = settings.state
         return state.emojiSequence != ui.emojiSequence ||
             state.trackCharacter != ui.trackCharacter ||
-            state.indeterminateSpeedMs != ui.indeterminateSpeedMs
+            state.indeterminateSpeedMs != ui.indeterminateSpeedMs ||
+            !state.trackColorHex.equals(ui.trackColorHex, ignoreCase = true) ||
+            !state.progressColorHex.equals(ui.progressColorHex, ignoreCase = true) ||
+            !state.borderColorHex.equals(ui.borderColorHex, ignoreCase = true) ||
+            state.useImageIndicator != ui.useImageIndicator ||
+            state.imagePath != ui.imagePath
     }
 
     override fun apply() {
@@ -38,6 +48,11 @@ class EmojiProgressBarConfigurable : SearchableConfigurable {
             it.emojiSequence = ui.emojiSequence
             it.trackCharacter = ui.trackCharacter
             it.indeterminateSpeedMs = ui.indeterminateSpeedMs
+            it.trackColorHex = ui.trackColorHex
+            it.progressColorHex = ui.progressColorHex
+            it.borderColorHex = ui.borderColorHex
+            it.useImageIndicator = ui.useImageIndicator
+            it.imagePath = ui.imagePath
         }
     }
 
@@ -47,6 +62,11 @@ class EmojiProgressBarConfigurable : SearchableConfigurable {
         ui.emojiSequence = state.emojiSequence
         ui.trackCharacter = state.trackCharacter
         ui.indeterminateSpeedMs = state.indeterminateSpeedMs
+        ui.trackColorHex = state.trackColorHex
+        ui.progressColorHex = state.progressColorHex
+        ui.borderColorHex = state.borderColorHex
+        ui.useImageIndicator = state.useImageIndicator
+        ui.imagePath = state.imagePath
     }
 
     override fun getPreferredFocusedComponent(): JComponent? =

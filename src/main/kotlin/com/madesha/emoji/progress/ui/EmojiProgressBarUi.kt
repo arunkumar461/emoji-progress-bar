@@ -9,11 +9,16 @@ import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.geom.RoundRectangle2D
+import java.awt.image.BufferedImage
+import java.io.File
+import java.util.concurrent.ConcurrentHashMap
+import javax.imageio.ImageIO
 import javax.swing.JComponent
-import javax.swing.UIManager
 import javax.swing.plaf.basic.BasicProgressBarUI
 import kotlin.math.ceil
 import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 class EmojiProgressBarUi : BasicProgressBarUI() {
 
@@ -54,39 +59,37 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         g2.translate(insets.left, insets.top)
 
         val radius = max(8, ceil(height * 0.8).toInt())
-        val trackBackground = fetchColor(
-            key = "ProgressBar.trackColor",
-            lightFallback = Color(0xF2F4F9),
-            darkFallback = Color(0x2B2D32)
+        val trackBackground = colorFromHex(
+            state.trackColorHex,
+            EmojiProgressBarSettings.DEFAULT_TRACK_COLOR,
+            DEFAULT_TRACK_COLOR
         )
-        val progressFill = fetchColor(
-            key = "ProgressBar.progressColor",
-            lightFallback = Color.WHITE,
-            darkFallback = Color(0x3B4048)
+        val progressFill = colorFromHex(
+            state.progressColorHex,
+            EmojiProgressBarSettings.DEFAULT_PROGRESS_COLOR,
+            DEFAULT_PROGRESS_COLOR
         )
-        val borderColor = fetchColor(
-            key = "ProgressBar.borderColor",
-            lightFallback = Color(0xD0D4E0),
-            darkFallback = Color(0x43464E)
+        val borderColor = colorFromHex(
+            state.borderColorHex,
+            EmojiProgressBarSettings.DEFAULT_BORDER_COLOR,
+            DEFAULT_BORDER_COLOR
         )
 
-        val shape =
-            RoundRectangle2D.Float(0f, 0f, width.toFloat(), height.toFloat(), radius.toFloat(), radius.toFloat())
+        val shape = RoundRectangle2D.Float(0f, 0f, width.toFloat(), height.toFloat(), radius.toFloat(), radius.toFloat())
         g2.color = trackBackground
         g2.fill(shape)
 
         val fraction = (computeFractionOverride ?: bar.percentComplete ?: 0.0).coerceIn(0.0, 1.0)
         val progressWidth = max(1, (width * fraction).toInt())
         if (fraction > 0.0) {
-            val progressShape =
-                RoundRectangle2D.Float(
-                    0f,
-                    0f,
-                    progressWidth.toFloat(),
-                    height.toFloat(),
-                    radius.toFloat(),
-                    radius.toFloat()
-                )
+            val progressShape = RoundRectangle2D.Float(
+                0f,
+                0f,
+                progressWidth.toFloat(),
+                height.toFloat(),
+                radius.toFloat(),
+                radius.toFloat()
+            )
             g2.color = progressFill
             g2.fill(progressShape)
         }
@@ -94,28 +97,38 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         g2.color = borderColor
         g2.draw(shape)
 
-        paintEmojiIndicator(
-            g2 = g2,
-            width = width,
-            height = height,
-            fraction = fraction,
-            state = state,
-            timestamp = System.currentTimeMillis(),
-            progressWidth = progressWidth
-        )
+        paintIndicator(g2, width, height, fraction, progressWidth, state, System.currentTimeMillis())
 
         g2.dispose()
     }
 
-    private fun paintEmojiIndicator(
+    private fun paintIndicator(
         g2: Graphics2D,
         width: Int,
         height: Int,
         fraction: Double,
+        progressWidth: Int,
         state: EmojiProgressBarSettings.State,
-        timestamp: Long,
-        progressWidth: Int
+        timestamp: Long
     ) {
+        val indicatorImage = loadIndicatorImage(state)
+        if (indicatorImage != null) {
+            val clampedHeight = (height - JBUI.scale(4)).coerceAtLeast(JBUI.scale(12))
+            val scale = clampedHeight.toDouble() / indicatorImage.height.coerceAtLeast(1)
+            val targetHeight = clampedHeight
+            val targetWidth = (indicatorImage.width * scale).roundToInt().coerceAtLeast(JBUI.scale(12))
+
+            val clampedProgress = progressWidth.coerceAtMost(width)
+            val availableWidth = (width - targetWidth).coerceAtLeast(0)
+            val desiredX = ((width - targetWidth) * fraction.coerceIn(0.0, 1.0)).roundToInt()
+            val progressEdge = (clampedProgress - targetWidth).coerceAtLeast(0)
+            val x = min(desiredX, progressEdge).coerceIn(0, availableWidth)
+            val y = ((height - targetHeight) / 2).coerceAtLeast(0)
+
+            g2.drawImage(indicatorImage, x, y, targetWidth, targetHeight, null)
+            return
+        }
+
         val emojiTokens = parseEmojiTokens(state.emojiSequence).ifEmpty {
             listOf(EmojiProgressBarSettings.DEFAULT_EMOJI_SEQUENCE)
         }
@@ -128,13 +141,14 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
             emojiTokens[phase]
         }
 
-        val fm = g2.fontMetrics
-        val emojiWidthRaw = fm.stringWidth(emoji)
-        val emojiWidth = emojiWidthRaw.coerceAtLeast(JBUI.scale(12))
+        val fontMetrics = g2.fontMetrics
+        val emojiWidth = fontMetrics.stringWidth(emoji).coerceAtLeast(JBUI.scale(12))
         val availableWidth = (width - emojiWidth).coerceAtLeast(0)
-        val baseline = ((height - fm.height) / 2) + fm.ascent
+        val baseline = ((height - fontMetrics.height) / 2) + fontMetrics.ascent
 
-        val emojiX = (progressWidth - emojiWidth).coerceIn(0, availableWidth)
+        val desiredX = ((width - emojiWidth) * fraction.coerceIn(0.0, 1.0)).roundToInt()
+        val progressEdge = (progressWidth - emojiWidth).coerceAtLeast(0)
+        val emojiX = min(desiredX, progressEdge).coerceIn(0, availableWidth)
 
         g2.color = UIUtil.getLabelForeground()
         g2.drawString(emoji, emojiX, baseline)
@@ -145,17 +159,65 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
             .map { it.trim() }
             .filter { it.isNotEmpty() }
 
-    private fun fetchColor(key: String, lightFallback: Color, darkFallback: Color): Color =
-        UIManager.getColor(key) ?: JBColor(lightFallback, darkFallback)
+    private fun colorFromHex(hex: String?, fallbackHex: String, fallback: JBColor): Color {
+        if (hex.isNullOrBlank()) return fallback
+        val cleaned = hex.removePrefix("#")
+        if (cleaned.equals(fallbackHex, ignoreCase = true)) {
+            return fallback
+        }
+        return try {
+            val value = cleaned.toInt(16)
+            Color(value shr 16 and 0xFF, value shr 8 and 0xFF, value and 0xFF)
+        } catch (_: Exception) {
+            fallback
+        }
+    }
+
+    private fun loadIndicatorImage(state: EmojiProgressBarSettings.State): BufferedImage? {
+        if (!state.useImageIndicator) return null
+        val path = state.imagePath.trim()
+        if (path.isEmpty()) return null
+        return loadImageFromPath(path)
+    }
 
     companion object {
         private const val INDETERMINATE_STEPS = 24L
         private const val MIN_ANIMATION_MS = 45
         private const val MAX_ANIMATION_MS = 600
 
+        private val DEFAULT_TRACK_COLOR = JBColor(Color(0xF2, 0xF4, 0xF9), Color(0x2B, 0x2D, 0x32))
+        private val DEFAULT_PROGRESS_COLOR = JBColor(Color.WHITE, Color(0x3B, 0x40, 0x48))
+        private val DEFAULT_BORDER_COLOR = JBColor(Color(0xD0, 0xD4, 0xE0), Color(0x43, 0x46, 0x4E))
+
+        private data class CachedImage(val timestamp: Long, val image: BufferedImage?)
+
+        private val imageCache = ConcurrentHashMap<String, CachedImage>()
+
         val UI_CLASS_NAME: String = EmojiProgressBarUi::class.java.name
 
         @JvmStatic
         fun createUI(component: JComponent?): BasicProgressBarUI = EmojiProgressBarUi()
+
+        private fun loadImageFromPath(path: String): BufferedImage? {
+            val file = File(path)
+            val key = file.absolutePath
+            if (!file.exists() || !file.isFile) {
+                imageCache.remove(key)
+                return null
+            }
+            val timestamp = file.lastModified()
+            imageCache[key]?.let { cached ->
+                if (cached.timestamp == timestamp) {
+                    return cached.image
+                }
+            }
+            val image = try {
+                ImageIO.read(file)
+            } catch (_: Exception) {
+                null
+            }
+            imageCache[key] = CachedImage(timestamp, image)
+            return image
+        }
     }
 }
