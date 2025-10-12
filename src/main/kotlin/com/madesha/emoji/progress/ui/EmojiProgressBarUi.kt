@@ -28,6 +28,18 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         progressBar.isBorderPainted = false
     }
 
+    override fun getPreferredSize(c: JComponent?): java.awt.Dimension {
+        val size = super.getPreferredSize(c)
+        size.height = max(size.height, desiredHeight())
+        return size
+    }
+
+    override fun getMinimumSize(c: JComponent?): java.awt.Dimension {
+        val size = super.getMinimumSize(c)
+        size.height = max(size.height, desiredHeight())
+        return size
+    }
+
     override fun paintDeterminate(g: Graphics, c: JComponent) {
         paintEmojiProgress(g, c, computeFractionOverride = null)
     }
@@ -97,10 +109,7 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         g2.color = borderColor
         g2.draw(shape)
 
-        val indicatorScale = state.indicatorScalePercent.coerceIn(
-            MIN_INDICATOR_SCALE_PERCENT,
-            MAX_INDICATOR_SCALE_PERCENT
-        ) / 100.0
+        val indicatorScale = indicatorScale(state)
 
         paintIndicator(g2, width, height, fraction, progressWidth, state, indicatorScale, System.currentTimeMillis())
 
@@ -119,16 +128,14 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
     ) {
         val indicatorImage = loadIndicatorImage(state)
         if (indicatorImage != null) {
-            val clampedHeight = (height * scale).roundToInt().coerceAtLeast(JBUI.scale(16))
-            val imageScale = clampedHeight.toDouble() / indicatorImage.height.coerceAtLeast(1)
-            val targetHeight = clampedHeight
-            val targetWidth = (indicatorImage.width * imageScale).roundToInt().coerceAtLeast(JBUI.scale(16))
+            val targetHeight = (height * scale).roundToInt().coerceAtLeast(JBUI.scale(16)).coerceAtMost(height)
+            val imageScale = targetHeight.toDouble() / indicatorImage.height.coerceAtLeast(1)
+            val targetWidth = (indicatorImage.width * imageScale).roundToInt().coerceAtLeast(JBUI.scale(16)).coerceAtMost(width)
 
             val clampedProgress = progressWidth.coerceAtMost(width)
             val availableWidth = (width - targetWidth).coerceAtLeast(0)
-            val desiredX = ((width - targetWidth) * fraction.coerceIn(0.0, 1.0)).roundToInt()
-            val progressEdge = (clampedProgress - targetWidth).coerceAtLeast(0)
-            val x = min(desiredX, progressEdge).coerceIn(0, availableWidth)
+            val centerX = clampedProgress - targetWidth / 2
+            val x = centerX.coerceIn(0, availableWidth)
             val y = ((height - targetHeight) / 2).coerceAtLeast(0)
 
             g2.drawImage(indicatorImage, x, y, targetWidth, targetHeight, null)
@@ -151,13 +158,12 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         val scaledFont = originalFont.deriveFont((originalFont.size2D * scale).toFloat().coerceAtMost(originalFont.size2D * 2.5f))
         g2.font = scaledFont
         val fontMetrics = g2.fontMetrics
-        val emojiWidth = fontMetrics.stringWidth(emoji).coerceAtLeast(JBUI.scale(12))
+        val emojiWidth = fontMetrics.stringWidth(emoji).coerceAtLeast(JBUI.scale(16))
         val availableWidth = (width - emojiWidth).coerceAtLeast(0)
         val baseline = ((height - fontMetrics.height) / 2) + fontMetrics.ascent
 
-        val desiredX = ((width - emojiWidth) * fraction.coerceIn(0.0, 1.0)).roundToInt()
-        val progressEdge = (progressWidth - emojiWidth).coerceAtLeast(0)
-        val emojiX = min(desiredX, progressEdge).coerceIn(0, availableWidth)
+        val centerX = progressWidth - emojiWidth / 2
+        val emojiX = centerX.coerceIn(0, availableWidth)
 
         g2.color = UIUtil.getLabelForeground()
         g2.drawString(emoji, emojiX, baseline)
@@ -190,6 +196,19 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         return loadImageFromPath(path)
     }
 
+    private fun indicatorScale(state: EmojiProgressBarSettings.State): Double =
+        state.indicatorScalePercent.coerceIn(
+            EmojiProgressBarSettings.MIN_INDICATOR_SCALE_PERCENT,
+            EmojiProgressBarSettings.MAX_INDICATOR_SCALE_PERCENT
+        ) / 100.0
+
+    private fun desiredHeight(): Int {
+        val state = EmojiProgressBarSettings.getInstance().state
+        val scale = indicatorScale(state)
+        val base = JBUI.scale(24)
+        return (base * scale).roundToInt().coerceAtLeast(JBUI.scale(24)).coerceAtMost(JBUI.scale(64))
+    }
+
     companion object {
         private const val INDETERMINATE_STEPS = 24L
         private const val MIN_ANIMATION_MS = 45
@@ -198,8 +217,6 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         private val DEFAULT_TRACK_COLOR = JBColor(Color(0xF2, 0xF4, 0xF9), Color(0x2B, 0x2D, 0x32))
         private val DEFAULT_PROGRESS_COLOR = JBColor(Color.WHITE, Color(0x3B, 0x40, 0x48))
         private val DEFAULT_BORDER_COLOR = JBColor(Color(0xD0, 0xD4, 0xE0), Color(0x43, 0x46, 0x4E))
-        private const val MIN_INDICATOR_SCALE_PERCENT = 50
-        private const val MAX_INDICATOR_SCALE_PERCENT = 300
 
         private data class CachedImage(val timestamp: Long, val image: BufferedImage?)
 
@@ -231,5 +248,6 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
             imageCache[key] = CachedImage(timestamp, image)
             return image
         }
+
     }
 }

@@ -46,6 +46,7 @@ class EmojiProgressBarSettingsComponent {
         previewWrapper.isOpaque = true
         previewWrapper.add(previewLabel, BorderLayout.CENTER)
         previewWrapper.emptyText.text = "Your emoji progress bar preview appears here"
+        previewWrapper.preferredSize = java.awt.Dimension(JBUI.scale(260), JBUI.scale(72))
 
         val changeListener = object : DocumentListener {
             override fun insertUpdate(e: DocumentEvent?) = updatePreview()
@@ -80,18 +81,14 @@ class EmojiProgressBarSettingsComponent {
             override fun changedUpdate(e: DocumentEvent?) = updatePreview()
         })
 
-        trackColorPanel.setSelectedColor(parseColor(EmojiProgressBarSettings.DEFAULT_TRACK_COLOR))
-        progressColorPanel.setSelectedColor(
-            parseColor(
-                EmojiProgressBarSettings.DEFAULT_PROGRESS_COLOR,
-                EmojiProgressBarSettings.DEFAULT_PROGRESS_COLOR
-            )
+        trackColorPanel.selectedColor = parseColor(EmojiProgressBarSettings.DEFAULT_TRACK_COLOR)
+        progressColorPanel.selectedColor = parseColor(
+            EmojiProgressBarSettings.DEFAULT_PROGRESS_COLOR,
+            EmojiProgressBarSettings.DEFAULT_PROGRESS_COLOR
         )
-        borderColorPanel.setSelectedColor(
-            parseColor(
-                EmojiProgressBarSettings.DEFAULT_BORDER_COLOR,
-                EmojiProgressBarSettings.DEFAULT_BORDER_COLOR
-            )
+        borderColorPanel.selectedColor = parseColor(
+            EmojiProgressBarSettings.DEFAULT_BORDER_COLOR,
+            EmojiProgressBarSettings.DEFAULT_BORDER_COLOR
         )
         imageField.isEnabled = false
 
@@ -135,21 +132,21 @@ class EmojiProgressBarSettingsComponent {
     var trackColorHex: String
         get() = colorToHex(trackColorPanel, EmojiProgressBarSettings.DEFAULT_TRACK_COLOR)
         set(value) {
-            trackColorPanel.setSelectedColor(parseColor(value, EmojiProgressBarSettings.DEFAULT_TRACK_COLOR))
+            trackColorPanel.selectedColor = parseColor(value, EmojiProgressBarSettings.DEFAULT_TRACK_COLOR)
             updatePreview()
         }
 
     var progressColorHex: String
         get() = colorToHex(progressColorPanel, EmojiProgressBarSettings.DEFAULT_PROGRESS_COLOR)
         set(value) {
-            progressColorPanel.setSelectedColor(parseColor(value, EmojiProgressBarSettings.DEFAULT_PROGRESS_COLOR))
+            progressColorPanel.selectedColor = parseColor(value, EmojiProgressBarSettings.DEFAULT_PROGRESS_COLOR)
             updatePreview()
         }
 
     var borderColorHex: String
         get() = colorToHex(borderColorPanel, EmojiProgressBarSettings.DEFAULT_BORDER_COLOR)
         set(value) {
-            borderColorPanel.setSelectedColor(parseColor(value, EmojiProgressBarSettings.DEFAULT_BORDER_COLOR))
+            borderColorPanel.selectedColor = parseColor(value, EmojiProgressBarSettings.DEFAULT_BORDER_COLOR)
             updatePreview()
         }
 
@@ -249,8 +246,8 @@ class EmojiProgressBarSettingsComponent {
     private fun createIndicatorSizeSlider(): JSlider =
         JSlider(
             SwingConstants.HORIZONTAL,
-            50,
-            300,
+            EmojiProgressBarSettings.MIN_INDICATOR_SCALE_PERCENT,
+            EmojiProgressBarSettings.MAX_INDICATOR_SCALE_PERCENT,
             EmojiProgressBarSettings.DEFAULT_INDICATOR_SCALE_PERCENT
         ).apply {
             majorTickSpacing = 50
@@ -286,8 +283,8 @@ class EmojiProgressBarSettingsComponent {
             val image: BufferedImage = ImageIO.read(file) ?: return null
             val baseHeight = JBUI.scale(28)
             val targetHeight = (baseHeight * scale).roundToInt().coerceAtLeast(JBUI.scale(16))
-            val scale = targetHeight.toDouble() / image.height.coerceAtLeast(1)
-            val targetWidth = (image.width * scale).roundToInt().coerceAtLeast(JBUI.scale(16))
+            val imageScale = targetHeight.toDouble() / image.height.coerceAtLeast(1)
+            val targetWidth = (image.width * imageScale).roundToInt().coerceAtLeast(JBUI.scale(16))
             val scaled = image.getScaledInstance(targetWidth, targetHeight, java.awt.Image.SCALE_SMOOTH)
             ImageIcon(scaled)
         } catch (_: Exception) {

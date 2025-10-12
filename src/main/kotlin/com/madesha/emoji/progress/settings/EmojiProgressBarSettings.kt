@@ -63,8 +63,8 @@ class EmojiProgressBarSettings : PersistentStateComponent<EmojiProgressBarSettin
         const val DEFAULT_INDICATOR_SCALE_PERCENT: Int = 160
         private const val MIN_SPEED_MS: Int = 60
         private const val MAX_SPEED_MS: Int = 400
-        private const val MIN_INDICATOR_SCALE_PERCENT: Int = 50
-        private const val MAX_INDICATOR_SCALE_PERCENT: Int = 300
+        const val MIN_INDICATOR_SCALE_PERCENT: Int = 50
+        const val MAX_INDICATOR_SCALE_PERCENT: Int = 300
 
         val TOPIC: Topic<EmojiProgressBarSettingsListener> =
             Topic.create("EmojiProgressBarSettingsChanged", EmojiProgressBarSettingsListener::class.java)
