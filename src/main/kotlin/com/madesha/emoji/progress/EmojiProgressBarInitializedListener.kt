@@ -1,15 +1,12 @@
 package com.madesha.emoji.progress
 
-import com.intellij.ide.AppLifecycleListener
+import com.intellij.ide.ApplicationInitializedListener
 import com.intellij.openapi.application.ApplicationManager
 import com.madesha.emoji.progress.ui.EmojiProgressBarManager
+import kotlinx.coroutines.CoroutineScope
 
-class EmojiProgressBarAppLifecycleListener : AppLifecycleListener {
-    override fun appFrameCreated(commandLineArgs: MutableList<String>) {
-        initializeManager()
-    }
-
-    private fun initializeManager() {
+class EmojiProgressBarInitializedListener : ApplicationInitializedListener {
+    override suspend fun execute(coroutineScope: CoroutineScope) {
         val application = ApplicationManager.getApplication()
         if (application.isDisposed) return
 
@@ -17,3 +14,4 @@ class EmojiProgressBarAppLifecycleListener : AppLifecycleListener {
         manager.initialize()
     }
 }
+

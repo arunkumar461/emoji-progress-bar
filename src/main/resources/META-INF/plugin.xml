@@ -12,12 +12,7 @@
         <applicationConfigurable instance="com.madesha.emoji.progress.settings.EmojiProgressBarConfigurable"
                                  id="com.madesha.emoji.progress.config"
                                  displayName="Emoji Progress Bar"/>
-        <applicationLoadListener implementation="com.madesha.emoji.progress.EmojiProgressBarApplicationLoadListener"/>
+        <applicationInitializedListener implementation="com.madesha.emoji.progress.EmojiProgressBarInitializedListener"/>
     </extensions>
-
-    <applicationListeners>
-        <listener class="com.madesha.emoji.progress.EmojiProgressBarAppLifecycleListener"
-                  topic="com.intellij.ide.AppLifecycleListener"/>
-    </applicationListeners>
 
 </idea-plugin>
