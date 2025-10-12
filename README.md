@@ -39,7 +39,7 @@ Emoji Progress Bar is a lightweight IntelliJ Platform plugin (compatible with In
 
 - Open `Settings / Preferences → Appearance & Behavior → Emoji Progress Bar`.
 - Enter an emoji sequence (separate multiple emoji with spaces for cycling), or tick “Use custom image indicator” and browse to a PNG/SVG/GIF.
-- Tune the track/progress/border colours, choose a fallback character for the track, and adjust indeterminate animation speed.
+- Tune the track/progress/border colours, choose a fallback character for the track, adjust indicator size, and taper the indeterminate animation speed.
 - Apply the changes; active progress indicators update immediately.
 
 ## Notes

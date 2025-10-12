@@ -32,10 +32,12 @@ class EmojiProgressBarSettingsComponent {
     private val trackColorPanel = ColorPanel()
     private val progressColorPanel = ColorPanel()
     private val borderColorPanel = ColorPanel()
+    private val indicatorSizeSlider = createIndicatorSizeSlider()
     private val useImageCheckbox = JBCheckBox("Use custom image indicator")
     private val imageField = TextFieldWithBrowseButton()
     private val previewLabel = JBLabel("", SwingConstants.CENTER)
     private val previewWrapper = JBPanelWithEmptyText(BorderLayout())
+    private val basePreviewFont = previewLabel.font
 
     init {
         previewLabel.border = JBUI.Borders.empty(8)
@@ -63,6 +65,8 @@ class EmojiProgressBarSettingsComponent {
             imageField.isEnabled = useImageCheckbox.isSelected
             updatePreview()
         }
+
+        indicatorSizeSlider.addChangeListener { updatePreview() }
 
         imageField.addBrowseFolderListener(
             "Select Indicator Image",
@@ -101,6 +105,7 @@ class EmojiProgressBarSettingsComponent {
         .addLabeledComponent(JBLabel("Track color:"), trackColorPanel, 1, false)
         .addLabeledComponent(JBLabel("Progress color:"), progressColorPanel, 1, false)
         .addLabeledComponent(JBLabel("Border color:"), borderColorPanel, 1, false)
+        .addLabeledComponent(JBLabel("Indicator size (%):"), indicatorSizeSlider, 1, false)
         .addComponent(useImageCheckbox, 1)
         .addLabeledComponent(JBLabel("Image file:"), imageField, 1, false)
         .addComponent(previewWrapper, 1)
@@ -148,6 +153,13 @@ class EmojiProgressBarSettingsComponent {
             updatePreview()
         }
 
+    var indicatorScalePercent: Int
+        get() = indicatorSizeSlider.value
+        set(value) {
+            indicatorSizeSlider.value = value
+            updatePreview()
+        }
+
     var useImageIndicator: Boolean
         get() = useImageCheckbox.isSelected
         set(value) {
@@ -175,6 +187,8 @@ class EmojiProgressBarSettingsComponent {
         val filler = trackCharacter.takeUnless { it.isBlank() }
             ?: EmojiProgressBarSettings.DEFAULT_TRACK_CHARACTER
 
+        val indicatorScale = indicatorSizeSlider.value / 100.0
+
         val filledSlots = 6
         val indicator = buildString {
             for (index in 0 until filledSlots) {
@@ -190,8 +204,10 @@ class EmojiProgressBarSettingsComponent {
         previewLabel.isOpaque = true
         previewLabel.background = trackColorPanel.selectedColor
 
+        previewLabel.font = basePreviewFont.deriveFont((basePreviewFont.size2D * indicatorScale).toFloat().coerceAtMost(48f))
+
         if (useImageCheckbox.isSelected) {
-            val icon = loadPreviewIcon(imagePath)
+            val icon = loadPreviewIcon(imagePath, indicatorScale)
             if (icon != null) {
                 previewLabel.icon = icon
                 previewLabel.text = ""
@@ -230,6 +246,19 @@ class EmojiProgressBarSettingsComponent {
             paintLabels = true
         }
 
+    private fun createIndicatorSizeSlider(): JSlider =
+        JSlider(
+            SwingConstants.HORIZONTAL,
+            50,
+            300,
+            EmojiProgressBarSettings.DEFAULT_INDICATOR_SCALE_PERCENT
+        ).apply {
+            majorTickSpacing = 50
+            minorTickSpacing = 10
+            paintTicks = true
+            paintLabels = true
+        }
+
     private fun colorToHex(panel: ColorPanel, fallback: String): String {
         val color = panel.selectedColor ?: parseColor(fallback, fallback)
         val rgb = color.rgb and 0xFFFFFF
@@ -250,12 +279,13 @@ class EmojiProgressBarSettingsComponent {
         }
     }
 
-    private fun loadPreviewIcon(path: String): ImageIcon? {
+    private fun loadPreviewIcon(path: String, scale: Double): ImageIcon? {
         val file = path.takeIf { it.isNotBlank() }?.let { File(it) } ?: return null
         if (!file.exists()) return null
         return try {
             val image: BufferedImage = ImageIO.read(file) ?: return null
-            val targetHeight = JBUI.scale(28)
+            val baseHeight = JBUI.scale(28)
+            val targetHeight = (baseHeight * scale).roundToInt().coerceAtLeast(JBUI.scale(16))
             val scale = targetHeight.toDouble() / image.height.coerceAtLeast(1)
             val targetWidth = (image.width * scale).roundToInt().coerceAtLeast(JBUI.scale(16))
             val scaled = image.getScaledInstance(targetWidth, targetHeight, java.awt.Image.SCALE_SMOOTH)

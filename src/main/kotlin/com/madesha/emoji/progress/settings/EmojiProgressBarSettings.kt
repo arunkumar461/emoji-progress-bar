@@ -18,6 +18,7 @@ class EmojiProgressBarSettings : PersistentStateComponent<EmojiProgressBarSettin
         var trackColorHex: String = DEFAULT_TRACK_COLOR,
         var progressColorHex: String = DEFAULT_PROGRESS_COLOR,
         var borderColorHex: String = DEFAULT_BORDER_COLOR,
+        var indicatorScalePercent: Int = DEFAULT_INDICATOR_SCALE_PERCENT,
         var useImageIndicator: Boolean = false,
         var imagePath: String = ""
     )
@@ -48,6 +49,7 @@ class EmojiProgressBarSettings : PersistentStateComponent<EmojiProgressBarSettin
         trackColorHex = normalizeColor(trackColorHex, DEFAULT_TRACK_COLOR),
         progressColorHex = normalizeColor(progressColorHex, DEFAULT_PROGRESS_COLOR),
         borderColorHex = normalizeColor(borderColorHex, DEFAULT_BORDER_COLOR),
+        indicatorScalePercent = indicatorScalePercent.coerceIn(MIN_INDICATOR_SCALE_PERCENT, MAX_INDICATOR_SCALE_PERCENT),
         useImageIndicator = useImageIndicator,
         imagePath = imagePath.trim()
     )
@@ -58,8 +60,11 @@ class EmojiProgressBarSettings : PersistentStateComponent<EmojiProgressBarSettin
         const val DEFAULT_TRACK_COLOR: String = "F2F4F9"
         const val DEFAULT_PROGRESS_COLOR: String = "FFFFFF"
         const val DEFAULT_BORDER_COLOR: String = "D0D4E0"
+        const val DEFAULT_INDICATOR_SCALE_PERCENT: Int = 160
         private const val MIN_SPEED_MS: Int = 60
         private const val MAX_SPEED_MS: Int = 400
+        private const val MIN_INDICATOR_SCALE_PERCENT: Int = 50
+        private const val MAX_INDICATOR_SCALE_PERCENT: Int = 300
 
         val TOPIC: Topic<EmojiProgressBarSettingsListener> =
             Topic.create("EmojiProgressBarSettingsChanged", EmojiProgressBarSettingsListener::class.java)

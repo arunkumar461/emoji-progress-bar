@@ -22,6 +22,7 @@ class EmojiProgressBarConfigurable : SearchableConfigurable {
                 ui.trackColorHex = state.trackColorHex
                 ui.progressColorHex = state.progressColorHex
                 ui.borderColorHex = state.borderColorHex
+                ui.indicatorScalePercent = state.indicatorScalePercent
                 ui.useImageIndicator = state.useImageIndicator
                 ui.imagePath = state.imagePath
             }
@@ -38,6 +39,7 @@ class EmojiProgressBarConfigurable : SearchableConfigurable {
             !state.trackColorHex.equals(ui.trackColorHex, ignoreCase = true) ||
             !state.progressColorHex.equals(ui.progressColorHex, ignoreCase = true) ||
             !state.borderColorHex.equals(ui.borderColorHex, ignoreCase = true) ||
+            state.indicatorScalePercent != ui.indicatorScalePercent ||
             state.useImageIndicator != ui.useImageIndicator ||
             state.imagePath != ui.imagePath
     }
@@ -51,6 +53,7 @@ class EmojiProgressBarConfigurable : SearchableConfigurable {
             it.trackColorHex = ui.trackColorHex
             it.progressColorHex = ui.progressColorHex
             it.borderColorHex = ui.borderColorHex
+            it.indicatorScalePercent = ui.indicatorScalePercent
             it.useImageIndicator = ui.useImageIndicator
             it.imagePath = ui.imagePath
         }
@@ -65,6 +68,7 @@ class EmojiProgressBarConfigurable : SearchableConfigurable {
         ui.trackColorHex = state.trackColorHex
         ui.progressColorHex = state.progressColorHex
         ui.borderColorHex = state.borderColorHex
+        ui.indicatorScalePercent = state.indicatorScalePercent
         ui.useImageIndicator = state.useImageIndicator
         ui.imagePath = state.imagePath
     }

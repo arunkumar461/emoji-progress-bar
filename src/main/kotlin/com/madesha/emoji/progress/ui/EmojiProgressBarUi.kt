@@ -97,7 +97,12 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         g2.color = borderColor
         g2.draw(shape)
 
-        paintIndicator(g2, width, height, fraction, progressWidth, state, System.currentTimeMillis())
+        val indicatorScale = state.indicatorScalePercent.coerceIn(
+            MIN_INDICATOR_SCALE_PERCENT,
+            MAX_INDICATOR_SCALE_PERCENT
+        ) / 100.0
+
+        paintIndicator(g2, width, height, fraction, progressWidth, state, indicatorScale, System.currentTimeMillis())
 
         g2.dispose()
     }
@@ -109,14 +114,15 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         fraction: Double,
         progressWidth: Int,
         state: EmojiProgressBarSettings.State,
+        scale: Double,
         timestamp: Long
     ) {
         val indicatorImage = loadIndicatorImage(state)
         if (indicatorImage != null) {
-            val clampedHeight = (height - JBUI.scale(4)).coerceAtLeast(JBUI.scale(12))
-            val scale = clampedHeight.toDouble() / indicatorImage.height.coerceAtLeast(1)
+            val clampedHeight = (height * scale).roundToInt().coerceAtLeast(JBUI.scale(16))
+            val imageScale = clampedHeight.toDouble() / indicatorImage.height.coerceAtLeast(1)
             val targetHeight = clampedHeight
-            val targetWidth = (indicatorImage.width * scale).roundToInt().coerceAtLeast(JBUI.scale(12))
+            val targetWidth = (indicatorImage.width * imageScale).roundToInt().coerceAtLeast(JBUI.scale(16))
 
             val clampedProgress = progressWidth.coerceAtMost(width)
             val availableWidth = (width - targetWidth).coerceAtLeast(0)
@@ -141,6 +147,9 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
             emojiTokens[phase]
         }
 
+        val originalFont = g2.font
+        val scaledFont = originalFont.deriveFont((originalFont.size2D * scale).toFloat().coerceAtMost(originalFont.size2D * 2.5f))
+        g2.font = scaledFont
         val fontMetrics = g2.fontMetrics
         val emojiWidth = fontMetrics.stringWidth(emoji).coerceAtLeast(JBUI.scale(12))
         val availableWidth = (width - emojiWidth).coerceAtLeast(0)
@@ -152,6 +161,7 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
 
         g2.color = UIUtil.getLabelForeground()
         g2.drawString(emoji, emojiX, baseline)
+        g2.font = originalFont
     }
 
     private fun parseEmojiTokens(raw: String): List<String> =
@@ -188,6 +198,8 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         private val DEFAULT_TRACK_COLOR = JBColor(Color(0xF2, 0xF4, 0xF9), Color(0x2B, 0x2D, 0x32))
         private val DEFAULT_PROGRESS_COLOR = JBColor(Color.WHITE, Color(0x3B, 0x40, 0x48))
         private val DEFAULT_BORDER_COLOR = JBColor(Color(0xD0, 0xD4, 0xE0), Color(0x43, 0x46, 0x4E))
+        private const val MIN_INDICATOR_SCALE_PERCENT = 50
+        private const val MAX_INDICATOR_SCALE_PERCENT = 300
 
         private data class CachedImage(val timestamp: Long, val image: BufferedImage?)
 
