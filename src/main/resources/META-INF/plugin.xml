@@ -1,0 +1,21 @@
+<idea-plugin>
+    <id>com.madesha.emoji.progressbar</id>
+    <name>Emoji Progress Bar</name>
+    <vendor email="madesha@example.com" url="https://example.com">MadeshA</vendor>
+    <description><![CDATA[
+        Provides a playful emoji-based progress bar inspired by the classic Nyan progress bar. Users can pick their own emoji sequence to animate activity indicators across IntelliJ-based IDEs like WebStorm.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable instance="com.madesha.emoji.progress.settings.EmojiProgressBarConfigurable"
+                                 id="com.madesha.emoji.progress.config"
+                                 displayName="Emoji Progress Bar"/>
+    </extensions>
+
+    <applicationListeners>
+        <listener class="com.madesha.emoji.progress.EmojiProgressBarAppLifecycleListener"
+                  topic="com.intellij.ide.AppLifecycleListener"/>
+    </applicationListeners>
+</idea-plugin>

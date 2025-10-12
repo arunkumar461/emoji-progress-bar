@@ -1,0 +1,9 @@
+/.gradle/
+/build/
+/out/
+/classes/
+/workspace.xml
+/.idea/
+/gradle/wrapper/gradle-wrapper.jar
+*.iml
+
