@@ -144,9 +144,9 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         private const val MIN_ANIMATION_MS = 45
         private const val MAX_ANIMATION_MS = 600
 
-        private val DEFAULT_TRACK_COLOR = JBColor(Color(0xFF, 0xF3, 0xCD), Color(0x3D, 0x30, 0x10))
-        private val DEFAULT_PROGRESS_COLOR = JBColor(Color(0xFF, 0xD1, 0x66), Color(0x7A, 0x55, 0x10))
-        private val DEFAULT_BORDER_COLOR = JBColor(Color(0xF0, 0xA5, 0x00), Color(0xC0, 0x80, 0x00))
+        private val DEFAULT_TRACK_COLOR = JBColor(Color(0xFF, 0xF3, 0xCD), Color(0x2E, 0x28, 0x18))
+        private val DEFAULT_PROGRESS_COLOR = JBColor(Color(0xFF, 0xD1, 0x66), Color(0xB8, 0x86, 0x20))
+        private val DEFAULT_BORDER_COLOR = JBColor(Color(0xF0, 0xA5, 0x00), Color(0x85, 0x62, 0x10))
 
         @Volatile private var cachedEmojiFont: Font? = null
 
