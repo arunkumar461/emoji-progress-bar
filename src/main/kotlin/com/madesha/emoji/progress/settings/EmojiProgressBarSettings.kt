@@ -12,15 +12,13 @@ import com.intellij.util.messages.Topic
 class EmojiProgressBarSettings : PersistentStateComponent<EmojiProgressBarSettings.State> {
 
     data class State(
-        var emojiSequence: String = "\uD83D\uDC31\u200D\uD83D\uDC64 \uD83C\uDF0C",
-        var trackCharacter: String = "\u00B7",
-        var indeterminateSpeedMs: Int = 120,
+        var emojiSequence: String = DEFAULT_EMOJI_SEQUENCE,
+        var trackCharacter: String = DEFAULT_TRACK_CHARACTER,
+        var indeterminateSpeedMs: Int = DEFAULT_SPEED_MS,
         var trackColorHex: String = DEFAULT_TRACK_COLOR,
         var progressColorHex: String = DEFAULT_PROGRESS_COLOR,
         var borderColorHex: String = DEFAULT_BORDER_COLOR,
-        var indicatorScalePercent: Int = DEFAULT_INDICATOR_SCALE_PERCENT,
-        var useImageIndicator: Boolean = false,
-        var imagePath: String = ""
+        var indicatorScalePercent: Int = DEFAULT_INDICATOR_SCALE_PERCENT
     )
 
     private var state: State = State()
@@ -49,20 +47,19 @@ class EmojiProgressBarSettings : PersistentStateComponent<EmojiProgressBarSettin
         trackColorHex = normalizeColor(trackColorHex, DEFAULT_TRACK_COLOR),
         progressColorHex = normalizeColor(progressColorHex, DEFAULT_PROGRESS_COLOR),
         borderColorHex = normalizeColor(borderColorHex, DEFAULT_BORDER_COLOR),
-        indicatorScalePercent = indicatorScalePercent.coerceIn(MIN_INDICATOR_SCALE_PERCENT, MAX_INDICATOR_SCALE_PERCENT),
-        useImageIndicator = useImageIndicator,
-        imagePath = imagePath.trim()
+        indicatorScalePercent = indicatorScalePercent.coerceIn(MIN_INDICATOR_SCALE_PERCENT, MAX_INDICATOR_SCALE_PERCENT)
     )
 
     companion object {
-        const val DEFAULT_EMOJI_SEQUENCE: String = "\uD83D\uDE38\u200D\u2B1B"
-        const val DEFAULT_TRACK_CHARACTER: String = "\u00B7"
+        const val DEFAULT_EMOJI_SEQUENCE: String = "🤔" // 🤔
+        const val DEFAULT_TRACK_CHARACTER: String = "·"
+        const val DEFAULT_SPEED_MS: Int = 120
         const val DEFAULT_TRACK_COLOR: String = "F2F4F9"
         const val DEFAULT_PROGRESS_COLOR: String = "FFFFFF"
         const val DEFAULT_BORDER_COLOR: String = "D0D4E0"
         const val DEFAULT_INDICATOR_SCALE_PERCENT: Int = 160
-        private const val MIN_SPEED_MS: Int = 60
-        private const val MAX_SPEED_MS: Int = 400
+        const val MIN_SPEED_MS: Int = 60
+        const val MAX_SPEED_MS: Int = 400
         const val MIN_INDICATOR_SCALE_PERCENT: Int = 50
         const val MAX_INDICATOR_SCALE_PERCENT: Int = 300
 

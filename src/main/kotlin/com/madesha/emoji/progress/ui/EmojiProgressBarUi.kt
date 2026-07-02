@@ -5,9 +5,11 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.madesha.emoji.progress.settings.EmojiProgressBarSettings
 import java.awt.Color
+import java.awt.Font
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
+import java.awt.font.TextLayout
 import java.awt.geom.RoundRectangle2D
 import java.awt.image.BufferedImage
 import java.io.File
@@ -17,7 +19,6 @@ import javax.swing.JComponent
 import javax.swing.plaf.basic.BasicProgressBarUI
 import kotlin.math.ceil
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 class EmojiProgressBarUi : BasicProgressBarUI() {
@@ -57,8 +58,11 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         val bar = progressBar
         val state = EmojiProgressBarSettings.getInstance().state
         val g2 = g.create() as? Graphics2D ?: return
-        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        // GASP respects each font's own hinting tables — correct for color emoji bitmap fonts
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_GASP)
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
 
         val insets = bar.insets
         val width = bar.width - insets.left - insets.right
@@ -91,7 +95,7 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         g2.color = trackBackground
         g2.fill(shape)
 
-        val fraction = (computeFractionOverride ?: bar.percentComplete ?: 0.0).coerceIn(0.0, 1.0)
+        val fraction = (computeFractionOverride ?: bar.percentComplete).coerceIn(0.0, 1.0)
         val progressWidth = max(1, (width * fraction).toInt())
         if (fraction > 0.0) {
             val progressShape = RoundRectangle2D.Float(
@@ -110,7 +114,6 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         g2.draw(shape)
 
         val indicatorScale = indicatorScale(state)
-
         paintIndicator(g2, width, height, fraction, progressWidth, state, indicatorScale, System.currentTimeMillis())
 
         g2.dispose()
@@ -154,20 +157,41 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
             emojiTokens[phase]
         }
 
-        val originalFont = g2.font
-        val scaledFont = originalFont.deriveFont((originalFont.size2D * scale).toFloat().coerceAtMost(originalFont.size2D * 2.5f))
-        g2.font = scaledFont
-        val fontMetrics = g2.fontMetrics
-        val emojiWidth = fontMetrics.stringWidth(emoji).coerceAtLeast(JBUI.scale(16))
-        val availableWidth = (width - emojiWidth).coerceAtLeast(0)
-        val baseline = ((height - fontMetrics.height) / 2) + fontMetrics.ascent
+        // Size the font from the actual bar pixel height so the emoji fills the bar
+        val targetPt = (height * scale).toFloat().coerceIn(JBUI.scale(14).toFloat(), JBUI.scale(56).toFloat())
+        val emojiFont = findEmojiFont(targetPt)
+        val savedFont = g2.font
+        g2.font = emojiFont
 
-        val centerX = progressWidth - emojiWidth / 2
-        val emojiX = centerX.coerceIn(0, availableWidth)
+        try {
+            // TextLayout performs full Unicode shaping (ZWJ sequences, skin-tone modifiers)
+            // and gives accurate glyph bounds — drawString() does neither on Linux/JVM
+            val layout = TextLayout(emoji, g2.font, g2.fontRenderContext)
+            val bounds = layout.bounds
+            val emojiWidth = bounds.width.toInt().coerceAtLeast(JBUI.scale(16))
+            val availableWidth = (width - emojiWidth).coerceAtLeast(0)
 
-        g2.color = UIUtil.getLabelForeground()
-        g2.drawString(emoji, emojiX, baseline)
-        g2.font = originalFont
+            val centerX = progressWidth - emojiWidth / 2
+            val emojiX = centerX.coerceIn(0, availableWidth)
+
+            // bounds.y is the ascent offset (negative = above baseline), so subtract it to centre vertically
+            val baseline = ((height - bounds.height) / 2 - bounds.y).toInt()
+
+            g2.color = UIUtil.getLabelForeground()
+            layout.draw(g2, emojiX.toFloat(), baseline.toFloat())
+        } catch (_: Exception) {
+            // Fallback for fonts that can't shape this emoji: plain drawString at a safe position
+            val fm = g2.fontMetrics
+            val emojiWidth = fm.stringWidth(emoji).coerceAtLeast(JBUI.scale(16))
+            val availableWidth = (width - emojiWidth).coerceAtLeast(0)
+            val centerX = progressWidth - emojiWidth / 2
+            val emojiX = centerX.coerceIn(0, availableWidth)
+            val baseline = ((height + fm.ascent - fm.descent) / 2)
+            g2.color = UIUtil.getLabelForeground()
+            g2.drawString(emoji, emojiX, baseline)
+        }
+
+        g2.font = savedFont
     }
 
     private fun parseEmojiTokens(raw: String): List<String> =
@@ -206,7 +230,9 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         val state = EmojiProgressBarSettings.getInstance().state
         val scale = indicatorScale(state)
         val base = JBUI.scale(24)
-        return (base * scale).roundToInt().coerceAtLeast(JBUI.scale(24)).coerceAtMost(JBUI.scale(64))
+        return (base * scale).roundToInt()
+            .coerceAtLeast(JBUI.scale(24))
+            .coerceAtMost(JBUI.scale(80))
     }
 
     companion object {
@@ -219,13 +245,50 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         private val DEFAULT_BORDER_COLOR = JBColor(Color(0xD0, 0xD4, 0xE0), Color(0x43, 0x46, 0x4E))
 
         private data class CachedImage(val timestamp: Long, val image: BufferedImage?)
-
         private val imageCache = ConcurrentHashMap<String, CachedImage>()
+
+        // Cache resolved emoji font to avoid repeated font lookup on every paint call
+        @Volatile private var cachedEmojiFont: Font? = null
 
         val UI_CLASS_NAME: String = EmojiProgressBarUi::class.java.name
 
         @JvmStatic
         fun createUI(component: JComponent?): BasicProgressBarUI = EmojiProgressBarUi()
+
+        /**
+         * Finds the best available color-emoji font on this system.
+         * Java2D does NOT automatically fall back to an emoji font, so we must select one explicitly.
+         * Priority: platform-native color emoji fonts, then generic fallback.
+         */
+        fun findEmojiFont(sizePt: Float): Font {
+            cachedEmojiFont?.let { return it.deriveFont(sizePt) }
+
+            val candidates = listOf(
+                "Noto Color Emoji",   // Linux (most common)
+                "Segoe UI Emoji",     // Windows
+                "Apple Color Emoji",  // macOS
+                "EmojiOne Mozilla",   // Firefox bundles
+                "Twemoji Mozilla",
+                "Symbola"             // fallback coverage font
+            )
+            val available = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .availableFontFamilyNames.toHashSet()
+            val resolved = candidates.firstOrNull { it in available }
+                ?: candidates.firstOrNull { name ->
+                    // Font(String,...) silently falls back to Dialog when the family is missing;
+                    // confirm by checking the returned family name
+                    Font(name, Font.PLAIN, 16).family.equals(name, ignoreCase = true)
+                }
+
+            val font = if (resolved != null) {
+                Font(resolved, Font.PLAIN, sizePt.toInt())
+            } else {
+                // No dedicated emoji font found — use the default font and hope for OS-level fallback
+                Font(Font.SANS_SERIF, Font.PLAIN, sizePt.toInt())
+            }
+            cachedEmojiFont = font
+            return font.deriveFont(sizePt)
+        }
 
         private fun loadImageFromPath(path: String): BufferedImage? {
             val file = File(path)
@@ -236,18 +299,11 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
             }
             val timestamp = file.lastModified()
             imageCache[key]?.let { cached ->
-                if (cached.timestamp == timestamp) {
-                    return cached.image
-                }
+                if (cached.timestamp == timestamp) return cached.image
             }
-            val image = try {
-                ImageIO.read(file)
-            } catch (_: Exception) {
-                null
-            }
+            val image = try { ImageIO.read(file) } catch (_: Exception) { null }
             imageCache[key] = CachedImage(timestamp, image)
             return image
         }
-
     }
 }
