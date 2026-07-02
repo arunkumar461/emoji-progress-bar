@@ -104,38 +104,25 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
             tokens[((timestamp / stepMs) % tokens.size).toInt()]
         }
 
-        // Cap emoji at 75% of bar height so it always fits inside the track
-        val targetPt = (height * 0.75f).coerceIn(JBUI.scale(10).toFloat(), JBUI.scale(40).toFloat())
+        // 65% of bar height keeps the glyph safely inside the track on all platforms
+        val targetPt = (height * 0.65f).coerceIn(JBUI.scale(8).toFloat(), JBUI.scale(32).toFloat())
         val emojiFont = findEmojiFont(targetPt)
         val savedFont = g2.font
+        val savedClip = g2.clip
         g2.font = emojiFont
+        // Hard clip so any platform-specific font overflow never escapes the bar bounds
+        g2.setClip(0, 0, width, height)
 
-        try {
-            // GlyphVector.visualBounds gives the tight ink rectangle (no internal font padding),
-            // which is essential for colour-emoji bitmap fonts like Noto Color Emoji
-            // whose logical bounds include several pixels of invisible leading/descender space.
-            val gv = g2.font.createGlyphVector(g2.fontRenderContext, emoji)
-            val vb = gv.visualBounds
-            val emojiWidth = vb.width.toInt().coerceAtLeast(JBUI.scale(16))
-            val emojiX = (progressWidth - emojiWidth / 2).coerceIn(0, (width - emojiWidth).coerceAtLeast(0))
-            // vb.y is the top of the ink box relative to the baseline (negative).
-            // baseline = barCentre - vb.y - vb.height/2 centres mathematically.
-            // The extra +vb.height*0.15 compensates for top-heavy padding in colour-emoji
-            // bitmap fonts (Noto Color Emoji etc.) where the visual centre sits ~15% lower
-            // than the geometric centre of the reported bounds.
-            val baseline = (height / 2.0 - vb.y - vb.height / 2.0 + vb.height * 0.15).toInt()
-            g2.color = UIUtil.getLabelForeground()
-            g2.drawGlyphVector(gv, emojiX.toFloat(), baseline.toFloat())
-        } catch (_: Exception) {
-            val fm = g2.fontMetrics
-            val emojiWidth = fm.stringWidth(emoji).coerceAtLeast(JBUI.scale(16))
-            val emojiX = (progressWidth - emojiWidth / 2).coerceIn(0, (width - emojiWidth).coerceAtLeast(0))
-            // Centre on baseline: half the bar height, adjusted up by half the leading gap
-            g2.color = UIUtil.getLabelForeground()
-            g2.drawString(emoji, emojiX, (height + fm.ascent - fm.descent) / 2)
-        }
+        val fm = g2.fontMetrics
+        val emojiWidth = fm.stringWidth(emoji).coerceAtLeast(JBUI.scale(16))
+        val emojiX = (progressWidth - emojiWidth / 2).coerceIn(0, (width - emojiWidth).coerceAtLeast(0))
+        // Standard baseline: centres the ascent+descent block within the bar height
+        val baseline = (height + fm.ascent - fm.descent) / 2
+        g2.color = UIUtil.getLabelForeground()
+        g2.drawString(emoji, emojiX, baseline)
 
         g2.font = savedFont
+        g2.clip = savedClip
     }
 
     private fun colorFromHex(hex: String?, fallbackHex: String, fallback: JBColor): Color {
