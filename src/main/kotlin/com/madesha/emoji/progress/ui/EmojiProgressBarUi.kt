@@ -119,8 +119,11 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
             val emojiWidth = vb.width.toInt().coerceAtLeast(JBUI.scale(16))
             val emojiX = (progressWidth - emojiWidth / 2).coerceIn(0, (width - emojiWidth).coerceAtLeast(0))
             // vb.y is the top of the ink box relative to the baseline (negative).
-            // baseline = barCentre - vb.y - vb.height/2  places ink centre on bar centre.
-            val baseline = (height / 2.0 - vb.y - vb.height / 2.0).toInt()
+            // baseline = barCentre - vb.y - vb.height/2 centres mathematically.
+            // The extra +vb.height*0.15 compensates for top-heavy padding in colour-emoji
+            // bitmap fonts (Noto Color Emoji etc.) where the visual centre sits ~15% lower
+            // than the geometric centre of the reported bounds.
+            val baseline = (height / 2.0 - vb.y - vb.height / 2.0 + vb.height * 0.15).toInt()
             g2.color = UIUtil.getLabelForeground()
             g2.drawGlyphVector(gv, emojiX.toFloat(), baseline.toFloat())
         } catch (_: Exception) {
