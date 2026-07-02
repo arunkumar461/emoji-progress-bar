@@ -9,7 +9,6 @@ import java.awt.Font
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
-import java.awt.font.TextLayout
 import java.awt.geom.RoundRectangle2D
 import javax.swing.JComponent
 import javax.swing.plaf.basic.BasicProgressBarUI
@@ -105,25 +104,30 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
             tokens[((timestamp / stepMs) % tokens.size).toInt()]
         }
 
-        val scale = state.indicatorScalePercent
-            .coerceIn(EmojiProgressBarSettings.MIN_INDICATOR_SCALE_PERCENT, EmojiProgressBarSettings.MAX_INDICATOR_SCALE_PERCENT) / 100.0
-        val targetPt = (height * scale).toFloat().coerceIn(JBUI.scale(14).toFloat(), JBUI.scale(56).toFloat())
+        // Cap emoji at 75% of bar height so it always fits inside the track
+        val targetPt = (height * 0.75f).coerceIn(JBUI.scale(10).toFloat(), JBUI.scale(40).toFloat())
         val emojiFont = findEmojiFont(targetPt)
         val savedFont = g2.font
         g2.font = emojiFont
 
         try {
-            val layout = TextLayout(emoji, g2.font, g2.fontRenderContext)
-            val bounds = layout.bounds
-            val emojiWidth = bounds.width.toInt().coerceAtLeast(JBUI.scale(16))
+            // GlyphVector.visualBounds gives the tight ink rectangle (no internal font padding),
+            // which is essential for colour-emoji bitmap fonts like Noto Color Emoji
+            // whose logical bounds include several pixels of invisible leading/descender space.
+            val gv = g2.font.createGlyphVector(g2.fontRenderContext, emoji)
+            val vb = gv.visualBounds
+            val emojiWidth = vb.width.toInt().coerceAtLeast(JBUI.scale(16))
             val emojiX = (progressWidth - emojiWidth / 2).coerceIn(0, (width - emojiWidth).coerceAtLeast(0))
-            val baseline = ((height - bounds.height) / 2 - bounds.y).toInt()
+            // vb.y is the top of the ink box relative to the baseline (negative).
+            // baseline = barCentre - vb.y - vb.height/2  places ink centre on bar centre.
+            val baseline = (height / 2.0 - vb.y - vb.height / 2.0).toInt()
             g2.color = UIUtil.getLabelForeground()
-            layout.draw(g2, emojiX.toFloat(), baseline.toFloat())
+            g2.drawGlyphVector(gv, emojiX.toFloat(), baseline.toFloat())
         } catch (_: Exception) {
             val fm = g2.fontMetrics
             val emojiWidth = fm.stringWidth(emoji).coerceAtLeast(JBUI.scale(16))
             val emojiX = (progressWidth - emojiWidth / 2).coerceIn(0, (width - emojiWidth).coerceAtLeast(0))
+            // Centre on baseline: half the bar height, adjusted up by half the leading gap
             g2.color = UIUtil.getLabelForeground()
             g2.drawString(emoji, emojiX, (height + fm.ascent - fm.descent) / 2)
         }
@@ -143,22 +147,16 @@ class EmojiProgressBarUi : BasicProgressBarUI() {
         }
     }
 
-    private fun desiredHeight(): Int {
-        val scale = EmojiProgressBarSettings.getInstance().state.indicatorScalePercent
-            .coerceIn(EmojiProgressBarSettings.MIN_INDICATOR_SCALE_PERCENT, EmojiProgressBarSettings.MAX_INDICATOR_SCALE_PERCENT) / 100.0
-        return (JBUI.scale(24) * scale).roundToInt()
-            .coerceAtLeast(JBUI.scale(24))
-            .coerceAtMost(JBUI.scale(80))
-    }
+    private fun desiredHeight(): Int = JBUI.scale(24)
 
     companion object {
         private const val INDETERMINATE_STEPS = 24L
         private const val MIN_ANIMATION_MS = 45
         private const val MAX_ANIMATION_MS = 600
 
-        private val DEFAULT_TRACK_COLOR = JBColor(Color(0xF2, 0xF4, 0xF9), Color(0x2B, 0x2D, 0x32))
-        private val DEFAULT_PROGRESS_COLOR = JBColor(Color.WHITE, Color(0x3B, 0x40, 0x48))
-        private val DEFAULT_BORDER_COLOR = JBColor(Color(0xD0, 0xD4, 0xE0), Color(0x43, 0x46, 0x4E))
+        private val DEFAULT_TRACK_COLOR = JBColor(Color(0xFF, 0xF3, 0xCD), Color(0x3D, 0x30, 0x10))
+        private val DEFAULT_PROGRESS_COLOR = JBColor(Color(0xFF, 0xD1, 0x66), Color(0x7A, 0x55, 0x10))
+        private val DEFAULT_BORDER_COLOR = JBColor(Color(0xF0, 0xA5, 0x00), Color(0xC0, 0x80, 0x00))
 
         @Volatile private var cachedEmojiFont: Font? = null
 

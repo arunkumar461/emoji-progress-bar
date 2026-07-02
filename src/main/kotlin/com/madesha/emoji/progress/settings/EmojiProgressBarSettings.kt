@@ -54,10 +54,10 @@ class EmojiProgressBarSettings : PersistentStateComponent<EmojiProgressBarSettin
         const val DEFAULT_EMOJI_SEQUENCE: String = "🤔" // 🤔
         const val DEFAULT_TRACK_CHARACTER: String = "·"
         const val DEFAULT_SPEED_MS: Int = 120
-        const val DEFAULT_TRACK_COLOR: String = "F2F4F9"
-        const val DEFAULT_PROGRESS_COLOR: String = "FFFFFF"
-        const val DEFAULT_BORDER_COLOR: String = "D0D4E0"
-        const val DEFAULT_INDICATOR_SCALE_PERCENT: Int = 160
+        const val DEFAULT_TRACK_COLOR: String = "FFF3CD"   // warm amber — matches 🤔 palette
+        const val DEFAULT_PROGRESS_COLOR: String = "FFD166" // muted golden yellow
+        const val DEFAULT_BORDER_COLOR: String = "F0A500"   // deep amber border
+        const val DEFAULT_INDICATOR_SCALE_PERCENT: Int = 100
         const val MIN_SPEED_MS: Int = 60
         const val MAX_SPEED_MS: Int = 400
         const val MIN_INDICATOR_SCALE_PERCENT: Int = 50

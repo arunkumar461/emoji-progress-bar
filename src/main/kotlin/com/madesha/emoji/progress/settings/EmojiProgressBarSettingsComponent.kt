@@ -177,7 +177,7 @@ class EmojiProgressBarSettingsComponent {
     }
 
     private fun parseColor(hex: String, fallbackHex: String = EmojiProgressBarSettings.DEFAULT_TRACK_COLOR): Color {
-        return decodeColor(hex) ?: decodeColor(fallbackHex) ?: Color(0xF2, 0xF4, 0xF9)
+        return decodeColor(hex) ?: decodeColor(fallbackHex) ?: Color(0xFF, 0xF3, 0xCD)
     }
 
     private fun decodeColor(value: String?): Color? {
